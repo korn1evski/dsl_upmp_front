@@ -5,6 +5,7 @@ import axios from "axios";
 let proceed = false;
 const DSLtab = () => {
   function validateDSL(input) {
+    input = input.trim().toLowerCase();
     const words = input.split(" ");
     const parsedArgs = {};
     const knownKeywords = new Set([

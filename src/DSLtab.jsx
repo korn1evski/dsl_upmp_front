@@ -5,9 +5,6 @@ import axios from "axios";
 let proceed = false;
 const DSLtab = () => {
   function validateDSL(input) {
-    input = input.trim().toLowerCase();
-    const words = input.split(" ");
-    const parsedArgs = {};
     const knownKeywords = new Set([
       "file_name",
       "target_column",
@@ -21,8 +18,23 @@ const DSLtab = () => {
       "one_hot",
       "label",
       "inputer",
+      "size",
+      "kernel",
+      "C",
+      "n_jobs",
+      "n_estimators",
+      "max_depth",
+      "random_state",
+      "epsilon",
+      "penalty",
+      "solver",
+      "max_iter",
+      "gamma",
+      "fit_intercept",
     ]);
 
+    let words = input.split(" ");
+    const parsedArgs = {};
     let lastKeyword = null;
 
     // Process key-value pairs more robustly
@@ -33,6 +45,7 @@ const DSLtab = () => {
       } else if (lastKeyword && parsedArgs[lastKeyword] === null) {
         // Assign the first subsequent non-keyword as the value to the last found keyword
         parsedArgs[lastKeyword] = words[i];
+        lastKeyword = null;
       } else {
         // Handle unrecognized words that aren't directly after a keyword or are not keywords themselves
         parsedArgs[words[i]] = "unknown keyword";
@@ -55,6 +68,19 @@ const DSLtab = () => {
       one_hot: "boolean",
       label: "boolean",
       inputer: "boolean",
+      size: "string",
+      kernel: "string",
+      C: "number",
+      n_jobs: "number",
+      n_estimators: "number",
+      max_depth: "number",
+      random_state: "number",
+      epsilon: "number",
+      penalty: "string",
+      solver: "string",
+      max_iter: "number",
+      gamma: "string",
+      fit_intercept: "boolean",
     };
 
     let errors = [];
@@ -78,9 +104,9 @@ const DSLtab = () => {
           // Validate data types
           if (
             required[key] === "number" &&
-            (isNaN(parseInt(value)) ||
-              parseInt(value) < 0 ||
-              parseInt(value) > 5)
+            (isNaN(parseFloat(value)) ||
+              parseFloat(value) < 0 ||
+              parseFloat(value) > 5)
           ) {
             errors.push(
               `Value for ${key} is not correct; expected a number between 0 and 5.`
@@ -117,6 +143,7 @@ const DSLtab = () => {
     let inputValue = e.target.value;
     setValue(inputValue);
   };
+
   function parseArgs(input) {
     const args = input.split(" "); // Split the input string into an array by spaces
     let output = "";
@@ -141,6 +168,19 @@ const DSLtab = () => {
       one_hot: "If true, applies one-hot encoding to categorical variables.",
       label: "If true, applies label encoding to categorical variables.",
       inputer: "If true, handles missing values in the data.",
+      size: "Specifies the size of the model.",
+      kernel: "Specifies the kernel type to be used in the model.",
+      C: "Regularization parameter.",
+      n_jobs: "Number of jobs to run in parallel.",
+      n_estimators: "The number of trees in the forest.",
+      max_depth: "The maximum depth of the tree.",
+      random_state: "Controls the randomness of the model.",
+      epsilon: "Epsilon in the epsilon-SVR model.",
+      penalty: "Specifies the norm used in the penalization.",
+      solver: "Algorithm to use in the optimization problem.",
+      max_iter: "Maximum number of iterations.",
+      gamma: "Kernel coefficient.",
+      fit_intercept: "Whether to calculate the intercept for this model.",
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -166,6 +206,7 @@ const DSLtab = () => {
             4 - Forest Classifier model
             5 - Support Vector Classifier`,
         load_model: "If true, loads a model from the specified file.",
+        model_name: "The name of the file where the model is saved.",
         save_model: "If true, saves the current model to a file.",
         pca: "If true, applies PCA to the model input.",
         scaling: "If true, applies scaling to the model input.",
@@ -174,6 +215,19 @@ const DSLtab = () => {
         one_hot: "If true, applies one-hot encoding to categorical variables.",
         label: "If true, applies label encoding to categorical variables.",
         inputer: "If true, handles missing values in the data.",
+        size: "Specifies the size of the model.",
+        kernel: "Specifies the kernel type to be used in the model.",
+        C: "Regularization parameter.",
+        n_jobs: "Number of jobs to run in parallel.",
+        n_estimators: "The number of trees in the forest.",
+        max_depth: "The maximum depth of the tree.",
+        random_state: "Controls the randomness of the model.",
+        epsilon: "Epsilon in the epsilon-SVR model.",
+        penalty: "Specifies the norm used in the penalization.",
+        solver: "Algorithm to use in the optimization problem.",
+        max_iter: "Maximum number of iterations.",
+        gamma: "Kernel coefficient.",
+        fit_intercept: "Whether to calculate the intercept for this model.",
       };
       setHelp(helpText[args[args.length - 2]] || "No help flags found.");
     }
@@ -199,7 +253,35 @@ const DSLtab = () => {
     - z_score (boolean): If true, applies Z-score normalization to the model input.
     - one_hot (boolean): If true, applies one-hot encoding to categorical variables.
     - label (boolean): If true, applies label encoding to categorical variables.
-    - inputer (boolean): If true, handles missing values in the data.`);
+    - inputer (boolean): If true, handles missing values in the data.
+    - size (number 0.0 - 1.0): Specifies the size of the train dataset.
+    - kernel (string): SSpecifies the kernel type to be used in the algorithm. If none is given, 'rbf' will be used. If a callable is given it is used to precompute the kernel matrix. ( 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' ).
+    - C (float): Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive ( default = 1.0 ).
+    - n_jobs (int): The number of jobs to use for the computation. This will only provide speedup in case of sufficiently large problems. default = 1.
+    - n_estimators (int): The number of trees in the forest ( default = 100 ).
+    - max_depth (int): The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all leaves contain less than. ( default = None ).
+    - random_state (int): Controls both the randomness of the bootstrapping of the samples used when building trees. int ( default = None ).
+    - epsilon (float): Epsilon in the epsilon-SVR model. It specifies the epsilon-tube within which no penalty is associated in the training loss function with points predicted within a distance epsilon from the actual value. Must be non-negative. ( default 0.1 )
+    - penalty (string): Specify the norm of the penalty:  
+      - None: no penalty is added; 
+      - 'l2': add a L2 penalty term and it is the default choice; 
+      - 'l1': add a L1 penalty term; 
+      - 'elasticnet': both L1 and L2 penalty terms are added. default = 'l2'
+    - solver (string): Algorithm to use in the optimization problem. Default is 'lbfgs'. To choose a solver, you might want to consider the following aspects:  
+      - For small datasets, 'liblinear' is a good choice, whereas 'sag' and 'saga' are faster for large ones; 
+      - For multiclass problems, only 'newton-cg', 'sag', 'saga' and 'lbfgs' handle multinomial loss; 
+      - 'liblinear' is limited to one-versus-rest schemes. 'lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky', 'sag', 'saga'},(  default='lbfgs' ).  The choice of the algorithm depends on the penalty chosen. Supported penalties by solver:  
+      - 'lbfgs' - ['l2', None] 
+      - 'liblinear' - ['l1', 'l2'] 
+      - 'newton-cg' - ['l2', None] 
+      - 'newton-cholesky' - ['l2', None] 
+      - 'sag' - ['l2', None] 
+      - 'saga' - ['elasticnet', 'l1', 'l2', None]
+    - max_iter (int): Maximum number of iterations taken for the solvers to converge. ( default = 100 )
+    - gamma (string): gamma : {'scale', 'auto'} or float, default='scale' Kernel coefficient for 'rbf', 'poly' and 'sigmoid'.  
+      - if gamma='scale (default) is passed then it uses 1 / (n_features * X.var()) as value of gamma, 
+      - if 'auto', uses 1 / n_features - if float, must be non-negative.
+    - fit_intercept (boolean): Whether to calculate the intercept for this model. If set to False, no intercept will be used in calculations. True or False ( Default = True )`);
 
     validateDSL(value);
 
